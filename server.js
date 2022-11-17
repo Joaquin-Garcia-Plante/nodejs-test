@@ -2,7 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const router = require("./routes");
-// const serverless = require("serverless-http");
+const serverless = require("serverless-http");
 
 //Inicializamos nuestro servicio web express
 const app = express();
@@ -27,4 +27,4 @@ app.listen(8080, () => {
   console.log("Server running");
 });
 module.exports = app;
-// module.exports.handler = serverless(app);
+module.exports.handler = serverless(app);

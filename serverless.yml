@@ -1,21 +1,16 @@
-# serverless.yml
+serverless.yml
 
-# service: express-app
+service: express-app
 
-# provider:
-#   name: aws
-#   runtime: nodejs16.x
-#   stage: dev
-#   region: us-east-1
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: dev
+  region: us-east-1
 
-# functions:
-#   app:
-#     handler: app.handler
-#     # events:
-#     #   - http: ANY /
-#     #   - http: "ANY /{proxy+}"
-# iamRoleStatements:
-#   - Effect: "Allow"
-#     Action:
-#       - "cloudformation:DescribeStackResource"
-#     Resource: "*"
+functions:
+  app:
+    handler: app.handler
+    # events:
+    #   - http: ANY /
+    #   - http: "ANY /{proxy+}"
