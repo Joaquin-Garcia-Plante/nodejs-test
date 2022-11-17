@@ -2,6 +2,7 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const router = require("./routes");
+// const serverless = require("serverless-http");
 
 //Inicializamos nuestro servicio web express
 const app = express();
@@ -15,7 +16,7 @@ mongoose
       useUnifiedTopology: true,
     }
   )
-  .then(() => console.log("MongoDB connected!"))
+  .then()
   .catch((err) => console.log(err));
 
 app.use(bodyParser.json());
@@ -25,3 +26,5 @@ app.use("/", router);
 app.listen(8080, () => {
   console.log("Server running");
 });
+module.exports = app;
+// module.exports.handler = serverless(app);

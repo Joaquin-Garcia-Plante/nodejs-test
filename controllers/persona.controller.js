@@ -1,6 +1,10 @@
 const Persona = require("../models/persona.model");
 const Direccion = require("../models/direccion.model");
 const { Parser } = require("json2csv");
+const { validateTypeFields } = require("../validations");
+const {
+  validateDuplicateDirection,
+} = require("../validations/persona.validations");
 const validateFields =
   require("../validations/persona.validations").validateFields;
 
@@ -21,7 +25,7 @@ const createObjPersona = (body) => {
     Apellido,
     Edad,
   });
-  if (body.Foto && !body.Foto == undefined) {
+  if (body.Foto) {
     personaObj.Foto = body.Foto;
   }
   return personaObj;
@@ -53,6 +57,20 @@ const getObjectModifyPerson = (body) => {
   }
   if (body.Foto) {
     obj.Foto = body.Foto;
+  }
+  return obj;
+};
+
+const getObjectModifyDirection = (body) => {
+  let obj = {};
+  if (body.Calle) {
+    obj.Calle = body.Calle;
+  }
+  if (body.Altura) {
+    obj.Altura = body.Altura;
+  }
+  if (body.Ciudad) {
+    obj.Ciudad = body.Ciudad;
   }
   return obj;
 };
@@ -112,7 +130,7 @@ const getList = async (req, res) => {
     path: "Direcciones",
     select: "ID Calle Altura Ciudad",
   });
-  if (!personas) {
+  if (personas.length <= 0) {
     return res.status(404).send("No se encontraron personas cargadas");
   }
   return res.status(201).json(personas);
@@ -120,6 +138,9 @@ const getList = async (req, res) => {
 
 //Filtrado de personas por A, B y D
 const getFilterList = async (req, res) => {
+  if (!req.query.DNI && !req.query.Nombre && !req.query.Edad) {
+    return res.status(404).send("Debe ingresar filtros para buscar personas");
+  }
   if (req.query.DNI) {
     //Si me llegó un DNI como filtrado solo devuelvo la persona a la cual le pertenece el DNI
     let persona = await filterByDNI(req.query.DNI);
@@ -149,7 +170,7 @@ const getFilterList = async (req, res) => {
   }
 
   //Si encuentro personas devuelvo el listado, de lo contrario devuelvo un error y un mensaje indicando el motivo
-  if (personas) {
+  if (personas.length > 0) {
     return res.status(201).json(personas);
   } else {
     return res
@@ -164,6 +185,9 @@ const getCSV = async (req, res) => {
     path: "Direcciones",
     select: "ID Calle Altura Ciudad",
   });
+  if (personas.length <= 0) {
+    return res.status(404).send("No se encuentran personas cargadas");
+  }
 
   //Defino los campos del csv
   const fields = [
@@ -207,32 +231,89 @@ const getCSV = async (req, res) => {
 //Funcion para modificar un documento de una persona en la base de datos
 const modifyPerson = async (req, res) => {
   //En primer lugar localizo el documento por su DNI (recibido por body) para luego poder actualizarlo
-  if (req.body.DNI) {
-    let persona = await filterByDNI(req.body.DNI);
-    if (persona) {
-      //Si encontré la persona formo un objeto para poder actualizar el documento
-      let objPerson = getObjectModifyPerson(req.body);
-      Object.assign(persona, objPerson);
+  let persona = await filterByDNI(req.body.DNI);
+  //Si encontré la persona formo un objeto para poder actualizar el documento
+  let objPerson = getObjectModifyPerson(req.body);
+  //Valido el tipo de dato de los campos
+  if (objPerson.Nombre) {
+    if (!validateTypeFields(objPerson.Nombre, "string"))
+      return res.status(404).send("Debe ingresar correctamente el nombre");
+  }
+  if (objPerson.Apellido) {
+    if (!validateTypeFields(objPerson.Apellido, "string"))
+      return res.status(404).send("Debe ingresar correctamente el Apellido");
+  }
+  if (objPerson.Edad) {
+    if (!validateTypeFields(objPerson.Edad, "number"))
+      return res.status(404).send("Debe ingresar correctamente la edad");
+  }
+  if (objPerson.Foto) {
+    if (!validateTypeFields(objPerson.Foto, "string"))
+      return res.status(404).send("Debe ingresar correctamente la foto");
+  }
+  if (req.body.NuevaDireccion) {
+    //Verifico si tengo una nueva direccion
+    //Valido campos
+    if (validateDireccion(req.body.NuevaDireccion)) {
+      const objDireccion = createObjDireccion(req.body.NuevaDireccion);
 
-      //Una vez que tengo el objeto actualizado paso a guardarlo
-      await persona.save();
-      return res
-        .status(201)
-        .json(
-          `La persona con el DNI ${req.body.DNI} ha sido actualizada con éxito`
-        );
+      //Valido que la direccion no se encuentre cargada
+      if (validateDuplicateDirection(objDireccion, persona.Direcciones)) {
+        //Instancio una nueva direccion
+        let direccionDoc = new Direccion(objDireccion);
+
+        //Creo la relacion entre ellos
+        persona.Direcciones.push(direccionDoc._id);
+        direccionDoc.Persona = persona._id;
+
+        //Guardo la direccion
+        direccionDoc.save();
+      } else {
+        return res.status(404).send("La direccion ya se encuentra cargada");
+      }
     } else {
-      //Si no encuentro la persona con el DNI recibido devuelvo un error indicando el mensaje
       return res
         .status(404)
-        .send(`No se encontró la persona con el DNI ${req.body.DNI}`);
+        .send(
+          "Debe ingresar correctamente la calle, altura y ciudad de la direccion"
+        );
     }
-  } else {
-    //Si no tengo el DNI devuelvo un error al no poder localizar la persona que se desea modificar
-    return res
-      .status(404)
-      .send("Debe ingresar el DNI de la persona que desea modificar");
+    //Si no tengo la direccion en mi usuario la agrego
   }
+  //Verifico si se ingresó un id de una direccion a eliminar
+  if (req.body.EliminarDireccionID) {
+    let direccion = await Direccion.findOne({
+      ID: req.body.EliminarDireccionID,
+    });
+    //Elimino la relacion de la persona con esa direccion
+    persona.Direcciones = persona.Direcciones.filter(
+      (dir) => !dir._id.equals(direccion._id)
+    );
+    //Una vez que elimine la relacion de la persona con el modelo direccion procedo a eliminar el documento de la direccion
+    await Direccion.findByIdAndDelete(direccion._id);
+  }
+  if (req.body.ModificarDireccion) {
+    //Encuentro la direccion
+    let direccion = await Direccion.findOne({
+      ID: req.body.ModificarDireccion.ID,
+    });
+    let objDirection = getObjectModifyDirection(req.body.ModificarDireccion);
+
+    //Actualizo campos
+    Object.assign(direccion, objDirection);
+
+    //Guardo el documento
+    await direccion.save();
+  }
+  //Actualizo los campos de la persona
+  Object.assign(persona, objPerson);
+  //Una vez que tengo el objeto actualizado paso a guardarlo
+  await persona.save();
+  return res
+    .status(201)
+    .send(
+      `La persona con el DNI ${req.body.DNI} ha sido actualizada con éxito`
+    );
 };
 
 //Esta funcion se encarga de localizar un documento de la coleccion personas la cual su ID(DNI) coincida con el recibido por query params

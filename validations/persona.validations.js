@@ -28,7 +28,9 @@ const validateFields = (body) => {
   if (!validateTypeFields(Edad, "number")) return false;
   if (!validateTypeFields(Nombre, "string")) return false;
   if (!validateTypeFields(Apellido, "string")) return false;
-
+  if (bodyKeys.includes("Foto")) {
+    if (!validateTypeFields(body.Foto, "string")) return false;
+  }
   //Validacion de contenido
   if (!DNI || DNI == undefined) return false;
   if (!Edad || Edad == undefined) return false;
@@ -50,8 +52,25 @@ const validateDNI = async (DNI) => {
   }
 };
 
+//Esta funcion valida que la direccion que se esta intentando añadir no se encuentre ya cargada
+const validateDuplicateDirection = (direccion, arrDirecciones) => {
+  let bool = true;
+  for (let i = 0; i < arrDirecciones.length; i++) {
+    if (
+      direccion.Calle == arrDirecciones[i].Calle &&
+      direccion.Altura == arrDirecciones[i].Altura &&
+      direccion.Ciudad == arrDirecciones[i].Ciudad
+    ) {
+      bool = false;
+      break;
+    }
+  }
+  return bool;
+};
+
 module.exports = {
   validateFields,
   validateDNI,
   validateTypeFields,
+  validateDuplicateDirection,
 };
