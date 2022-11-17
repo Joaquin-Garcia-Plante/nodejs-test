@@ -22,3 +22,6 @@ Debe colocarse en la raíz del directorio y ejecutar el comando npm test
 ## Endpoints
 ### Local: <http://localhost:8080>
 ### Desplegado: <https://uv8ltfwdce.execute-api.us-east-1.amazonaws.com/dev>
+
+## Documentación
+La documentación se encuentra en el siguiente link: <https://documenter.getpostman.com/view/19238470/2s8YmNPhTm>
