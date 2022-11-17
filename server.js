@@ -2,20 +2,18 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
 const router = require("./routes");
-const serverless = require("serverless-http");
+const dotenv = require("dotenv");
+dotenv.config();
 
 //Inicializamos nuestro servicio web express
 const app = express();
 
 //Conectamos nuestra base de datos
 mongoose
-  .connect(
-    "mongodb+srv://Admin:cdw0ALC3iqdD71xF@cluster0.8sisqpi.mongodb.net/nexo-test?retryWrites=true&w=majority",
-    {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    }
-  )
+  .connect(process.env.MONGO_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  })
   .then()
   .catch((err) => console.log(err));
 
@@ -27,4 +25,3 @@ app.listen(8080, () => {
   console.log("Server running");
 });
 module.exports = app;
-module.exports.handler = serverless(app);

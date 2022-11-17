@@ -1,12 +1,18 @@
 org: joaquingp
-app: aws-node-express-api
-service: aws-node-express-api
+app: aws-node-project
+service: aws-node-project
+
+frameworkVersion: "3"
+
 provider:
   name: aws
   runtime: nodejs14.x
-  stage: dev
-  region: us-east-1
 
 functions:
-  server:
-    handler: server.handler
+  app-api:
+    handler: handler.handler
+    environment:
+      MONGO_URI: mongodb+srv://Admin:cdw0ALC3iqdD71xF@cluster0.8sisqpi.mongodb.net/nexo-test?retryWrites=true&w=majority
+    events:
+      - http: ANY /
+      - http: "ANY /{proxy+}"
