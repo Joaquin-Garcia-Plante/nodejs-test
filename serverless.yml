@@ -1,5 +1,6 @@
-service: express-app
-
+org: joaquingp
+app: aws-node-express-api
+service: aws-node-express-api
 provider:
   name: aws
   runtime: nodejs14.x
